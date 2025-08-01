@@ -1,0 +1,163 @@
+name: Claude Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    # WordPress-specific file filtering
+    paths:
+      - "**/*.php"
+      - "**/*.js"
+      - "**/*.css"
+      - "**/*.scss"
+      - "**/*.json"
+      - "readme.txt"
+      - "style.css"
+      - "functions.php"
+      - "composer.json"
+      - "package.json"
+
+jobs:
+  claude-review:
+    # Optional: Filter by PR author (uncomment to enable)
+    # if: |
+    #   github.event.pull_request.user.login == 'external-contributor' ||
+    #   github.event.pull_request.user.login == 'new-developer' ||
+    #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
+    
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+      id-token: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
+          coverage: none
+
+      - name: Install Composer Dependencies
+        run: |
+          if [ -f composer.json ]; then
+            composer install --dev --prefer-dist --no-progress --no-interaction
+          fi
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install Node Dependencies
+        run: |
+          if [ -f package.json ]; then
+            npm ci
+          fi
+
+      - name: Run Claude Code Review
+        id: claude-review
+        uses: anthropics/claude-code-action@beta
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+
+          # Optional: Specify model (defaults to Claude Sonnet 4, uncomment for Claude Opus 4)
+          # model: "claude-opus-4-20250514"
+          
+          # WordPress-specific review prompt
+          direct_prompt: |
+            Please review this WordPress pull request with focus on:
+            
+            **WordPress Standards & Best Practices:**
+            - WordPress PHP Coding Standards compliance
+            - Proper use of WordPress APIs and functions
+            - Plugin/theme structure and organization
+            - Proper enqueuing of scripts and styles
+            - Internationalization (i18n) implementation
+            
+            **Security & Data Handling:**
+            - Input sanitization and output escaping
+            - Nonce verification for forms and AJAX
+            - SQL injection prevention (use $wpdb->prepare)
+            - User capability and permission checks
+            - CSRF protection implementation
+            
+            **Performance & Optimization:**
+            - Database query optimization
+            - Proper use of WordPress caching
+            - Asset optimization and minification
+            - Efficient hook usage (avoid excessive hooks)
+            - Image optimization and responsive images
+            
+            **WordPress-Specific Patterns:**
+            - Action and filter hook implementation
+            - Custom post types and meta fields
+            - Settings API usage for options
+            - Admin interface and menu integration
+            - REST API endpoint implementation
+            
+            **Compatibility & Standards:**
+            - WordPress version compatibility
+            - PHP version requirements
+            - Plugin/theme conflict potential
+            - Multisite compatibility
+            - Accessibility standards (WCAG)
+            
+            **Code Documentation:**
+            - PHPDoc blocks for functions and classes
+            - Inline code comments for complex logic
+            - @since version tags for new features
+            - Proper file headers with license info
+            
+            Be constructive and provide specific WordPress examples where helpful.
+
+          # WordPress-specific allowed tools
+          allowed_tools: |
+            Bash(composer phpcs),
+            Bash(composer phpcbf),
+            Bash(composer phpstan),
+            Bash(composer test),
+            Bash(./vendor/bin/phpcs),
+            Bash(./vendor/bin/phpcbf),
+            Bash(./vendor/bin/phpstan),
+            Bash(./vendor/bin/phpunit),
+            Bash(wp --info),
+            Bash(wp core version),
+            Bash(wp plugin list),
+            Bash(wp theme list),
+            Bash(npm run build),
+            Bash(npm run lint),
+            Bash(npm test),
+            Bash(gulp build),
+            Bash(gulp lint)
+          
+          # Use sticky comments for consistent review updates
+          use_sticky_comment: true
+          
+          # Optional: Skip review for certain conditions
+          # if: |
+          #   !contains(github.event.pull_request.title, '[skip-review]') &&
+          #   !contains(github.event.pull_request.title, '[WIP]') &&
+          #   !contains(github.event.pull_request.title, '[DRAFT]')
+
+          # Custom instructions for WordPress projects
+          custom_instructions: |
+            You are reviewing a WordPress plugin or theme. Follow WordPress coding standards and best practices.
+            Key focus areas:
+            - Follow WordPress.org PHP Coding Standards
+            - Use WordPress functions instead of PHP alternatives when available
+            - Ensure proper sanitization of all user inputs
+            - Escape all outputs appropriately
+            - Use nonces for form submissions and AJAX requests
+            - Check user capabilities before performing sensitive operations
+            - Use $wpdb->prepare() for all custom database queries
+            - Follow WordPress hook naming conventions
+            - Implement proper error handling with WP_Error when appropriate
+            - Ensure translation-ready code with proper text domains

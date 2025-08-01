@@ -1,0 +1,94 @@
+name: PHPCS
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+  pull_request:
+    types: [opened, labeled, synchronize]
+    paths:
+      - "**/*.php"
+      - "composer.json"
+      - "composer.lock"
+      - "phpcs.xml"
+      - "phpcs.xml.dist"
+
+jobs:
+  phpcs:
+    # Optional: Only run when labeled (remove 'if' condition to run on all PRs)
+    if: |
+      github.event_name == 'push' || 
+      contains(github.event.pull_request.labels.*.name, 'run analysis') ||
+      contains(github.event.pull_request.labels.*.name, 'code review')
+    
+    name: WordPress Coding Standards
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        php-version: ['7.4', '8.0', '8.1', '8.2']
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP ${{ matrix.php-version }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
+          coverage: none
+          tools: composer
+
+      - name: Validate composer.json and composer.lock
+        run: composer validate --strict
+
+      - name: Cache Composer packages
+        id: composer-cache
+        uses: actions/cache@v3
+        with:
+          path: vendor
+          key: ${{ runner.os }}-php-${{ matrix.php-version }}-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-php-${{ matrix.php-version }}-
+
+      - name: Install Composer Dependencies
+        run: |
+          composer install --dev --prefer-dist --no-progress --no-interaction
+
+      - name: Run PHPCS
+        run: |
+          # Check if custom PHPCS command exists in composer.json
+          if composer run-script --list | grep -q "phpcs"; then
+            composer run-script phpcs
+          else
+            # Use vendor binary directly with WordPress standards
+            ./vendor/bin/phpcs --standard=WordPress --extensions=php --ignore=vendor/,node_modules/,tests/ .
+          fi
+
+      - name: Generate PHPCS Report
+        if: failure()
+        run: |
+          # Generate detailed report on failure
+          if composer run-script --list | grep -q "phpcs"; then
+            composer run-script phpcs -- --report=summary --report-file=phpcs-report.txt
+          else
+            ./vendor/bin/phpcs --standard=WordPress --extensions=php --ignore=vendor/,node_modules/,tests/ --report=summary --report-file=phpcs-report.txt . || true
+          fi
+          
+          # Output summary for easy reading
+          if [ -f phpcs-report.txt ]; then
+            echo "## PHPCS Summary" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat phpcs-report.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload PHPCS Report
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: phpcs-report-php-${{ matrix.php-version }}
+          path: phpcs-report.txt

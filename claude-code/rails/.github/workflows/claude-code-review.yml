@@ -1,0 +1,112 @@
+name: Claude Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    # Optional: Only run on specific file changes
+    paths:
+      - "app/**/*.rb"
+      - "lib/**/*.rb"
+      - "config/**/*.rb"
+      - "spec/**/*.rb"
+      - "test/**/*.rb"
+      - "db/migrate/*.rb"
+      - "Gemfile*"
+      - "config/routes.rb"
+
+jobs:
+  claude-review:
+    # Optional: Filter by PR author (uncomment to enable)
+    # if: |
+    #   github.event.pull_request.user.login == 'external-contributor' ||
+    #   github.event.pull_request.user.login == 'new-developer' ||
+    #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
+    
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+      id-token: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: .ruby-version
+          bundler-cache: true
+
+      - name: Run Claude Code Review
+        id: claude-review
+        uses: anthropics/claude-code-action@beta
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+
+          # Optional: Specify model (defaults to Claude Sonnet 4, uncomment for Claude Opus 4)
+          # model: "claude-opus-4-20250514"
+          
+          # Rails-specific review prompt
+          direct_prompt: |
+            Please review this Rails pull request with focus on:
+            
+            **Code Quality & Rails Conventions:**
+            - Rails 7.2+ best practices and conventions
+            - Proper use of ActiveRecord patterns
+            - RESTful controller design
+            - Service object implementation
+            - Proper use of concerns and modules
+            
+            **Security & Performance:**
+            - SQL injection prevention (proper use of prepared statements)
+            - Mass assignment protection
+            - N+1 query detection
+            - Proper input sanitization and output escaping
+            - Authentication and authorization patterns
+            
+            **Database & Models:**
+            - Migration safety (reversible, no data loss)
+            - Model validations and associations
+            - Proper indexing considerations
+            - Database query optimization
+            
+            **Testing & Code Coverage:**
+            - Test coverage for new features
+            - Proper use of RSpec/Minitest patterns
+            - Factory and fixture usage
+            - Integration and unit test balance
+            
+            **API & JSON:**
+            - Proper JSON serialization
+            - API versioning patterns
+            - Error handling and status codes
+            - Rate limiting considerations
+            
+            Be constructive and provide specific Rails examples where helpful.
+
+          # Allow Claude to run Rails-specific tools
+          allowed_tools: "Bash(bundle exec rspec),Bash(bundle exec standardrb),Bash(bundle exec erblint),Bash(bundle exec brakeman),Bash(bundle exec rails db:migrate:status),Bash(bundle exec rails routes),Bash(rails test)"
+          
+          # Optional: Use sticky comments to make Claude reuse the same comment on subsequent pushes
+          use_sticky_comment: true
+          
+          # Optional: Skip review for certain conditions
+          # if: |
+          #   !contains(github.event.pull_request.title, '[skip-review]') &&
+          #   !contains(github.event.pull_request.title, '[WIP]') &&
+          #   !contains(github.event.pull_request.title, '[DRAFT]')
+
+          # Custom instructions for Rails projects
+          custom_instructions: |
+            You are reviewing a Ruby on Rails application. Follow Rails conventions and best practices.
+            Pay special attention to:
+            - ActiveRecord usage and database interactions
+            - Controller design and RESTful patterns
+            - Security practices (strong parameters, CSRF protection)
+            - Performance implications of database queries
+            - Proper error handling and validation
+            - Test coverage and quality

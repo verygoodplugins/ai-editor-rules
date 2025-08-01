@@ -1,0 +1,213 @@
+---
+description: Instructions for using WP-CLI when developing WordPress plugins, fixing bugs, and testing functionality
+globs: 
+alwaysApply: false
+---
+# WP-CLI Development Rules
+
+## Environment Setup
+- WP-CLI commands can be executed directly via shell
+- Navigate to your WordPress root directory before running commands
+- Ensure WP-CLI is installed and properly configured
+
+## Basic Plugin Management
+```shell
+# Activate/deactivate plugins
+wp plugin activate your-plugin-name
+wp plugin deactivate your-plugin-name
+
+# List all plugins
+wp plugin list
+
+# Check plugin status
+wp plugin status your-plugin-name
+```
+
+## Development Workflows
+
+### 1. Testing Plugin Changes
+```shell
+# Standard testing workflow
+wp plugin deactivate your-plugin-name
+wp plugin activate your-plugin-name
+wp cache flush
+
+# Check for PHP errors
+wp plugin activate your-plugin-name --debug
+```
+
+### 2. Database Management
+```shell
+# Export database before testing
+wp db export backup-$(date +%Y%m%d-%H%M%S).sql
+
+# Import backup if needed
+wp db import backup-file.sql
+
+# Search and replace (useful for URL changes)
+wp search-replace 'old-url.com' 'new-url.com'
+```
+
+### 3. Cache Management
+```shell
+# Clear all caches
+wp cache flush
+
+# Object cache (if using Redis/Memcached)
+wp cache flush-object
+
+# Rewrite rules
+wp rewrite flush
+```
+
+### 4. User Management for Testing
+```shell
+# Create test user
+wp user create testuser test@example.com --role=administrator
+
+# Update user role
+wp user update testuser --role=subscriber
+
+# List users
+wp user list
+```
+
+### 5. Option Management
+```shell
+# Get plugin options
+wp option get your_plugin_option_name
+
+# Update plugin options
+wp option update your_plugin_option_name 'new_value'
+
+# Delete plugin options
+wp option delete your_plugin_option_name
+
+# List all options (filtered)
+wp option list --search="your_plugin*"
+```
+
+### 6. Post and Content Management
+```shell
+# Create test posts
+wp post generate --count=10
+
+# Update post meta
+wp post meta update 123 your_plugin_meta_key 'meta_value'
+
+# Get post meta
+wp post meta get 123 your_plugin_meta_key
+```
+
+### 7. Plugin Development Commands
+```shell
+# Check WordPress and plugin requirements
+wp core check-update
+wp plugin list --format=table
+
+# Verify file permissions
+wp file-ownership
+
+# Run maintenance tasks
+wp cron event run --all
+```
+
+### 8. Debugging and Troubleshooting
+```shell
+# Enable debug mode
+wp config set WP_DEBUG true --type=constant
+wp config set WP_DEBUG_LOG true --type=constant
+
+# Check error logs
+wp log list
+
+# Verify plugin file integrity
+wp core verify-checksums
+wp plugin verify-checksums your-plugin-name
+```
+
+### 9. Performance Testing
+```shell
+# Check database
+wp db check
+
+# Optimize database
+wp db optimize
+
+# Check plugin performance impact
+wp plugin deactivate --all
+wp plugin activate your-plugin-name
+# Run performance tests here
+```
+
+### 10. Multisite Management (if applicable)
+```shell
+# Network commands
+wp site list
+wp site activate 2
+wp plugin activate your-plugin-name --network
+```
+
+## Integration Testing Workflow
+```shell
+#!/bin/bash
+# Complete testing script example
+
+echo "Starting plugin testing workflow..."
+
+# 1. Backup current state
+wp db export "pre-test-$(date +%Y%m%d-%H%M%S).sql"
+
+# 2. Deactivate and reactivate plugin
+wp plugin deactivate your-plugin-name
+wp plugin activate your-plugin-name
+
+# 3. Clear all caches
+wp cache flush
+
+# 4. Run any custom WP-CLI commands your plugin provides
+# wp your-plugin command-name
+
+# 5. Check for errors
+wp plugin status your-plugin-name
+
+echo "Testing workflow complete!"
+```
+
+## Custom WP-CLI Commands
+If your plugin provides custom WP-CLI commands, document them here:
+```shell
+# Example custom commands for your plugin
+wp your-plugin sync-data
+wp your-plugin clear-cache
+wp your-plugin run-migration
+```
+
+## Environment-Specific Considerations
+```shell
+# Local development
+wp config set WP_DEBUG true --type=constant
+wp config set SCRIPT_DEBUG true --type=constant
+
+# Staging environment
+wp search-replace 'production-url.com' 'staging-url.com'
+
+# Production deployment
+wp plugin activate your-plugin-name --quiet
+wp cache flush --quiet
+```
+
+## Troubleshooting Common Issues
+```shell
+# Plugin conflicts
+wp plugin deactivate --all
+wp plugin activate your-plugin-name
+# Test functionality, then reactivate other plugins one by one
+
+# Permission issues
+wp file-ownership --fix
+
+# Database corruption
+wp db repair
+wp db optimize
+```

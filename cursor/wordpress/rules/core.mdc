@@ -1,0 +1,173 @@
+---
+description: Core WordPress plugin architectural patterns and development guidelines. Use when working with core plugin functionality.
+globs: *.php
+alwaysApply: false
+---
+# Core Development Rules
+
+## Architecture Principles
+- Maintain backward compatibility
+- Follow WordPress coding standards
+- Use dependency injection where possible
+- Keep classes focused and single-purpose
+- Use interfaces for standardization
+
+## Directory Structure
+```
+your-plugin/
+├── includes/
+│   ├── admin/      # Admin interfaces
+│   ├── api/        # REST API endpoints
+│   ├── integrations/ # Third-party plugin integrations
+│   └── class-*.php # Core classes
+├── assets/         # JS, CSS, images
+├── languages/      # Translation files
+└── tests/          # PHPUnit tests
+```
+
+## Coding Patterns
+```php
+// Singleton pattern
+class Your_Plugin_Example {
+    private static $instance;
+
+    public static function instance() {
+        if ( ! isset( self::$instance ) ) {
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
+}
+
+// Hook registration
+class Your_Plugin_Feature {
+    public function __construct() {
+        add_action( 'init', array( $this, 'init' ) );
+        add_filter( 'your_plugin_example', array( $this, 'filter_example' ) );
+    }
+}
+
+/**
+ * Handles the HTTP Response
+ *
+ * @since  1.0.0
+ *
+ * @param  array|WP_Error $response The HTTP response data.
+ * @return array|false Response data on success, false on failure.
+ */
+public function handle_response( $response ) {
+    if ( is_wp_error( $response ) ) {
+        error_log( 'Plugin Error: ' . $response->get_error_message() );
+        return false;
+    }
+
+    $body = json_decode( wp_remote_retrieve_body( $response ), true );
+    
+    if ( ! $body ) {
+        error_log( 'Invalid response: ' . wp_remote_retrieve_body( $response ) );
+        return false;
+    }
+
+    return $body;
+}
+```
+
+## Performance Guidelines
+- Cache expensive operations
+- Use transients appropriately
+- Batch process large operations
+- Minimize database queries
+- Use WordPress object cache
+
+## Security Requirements
+- Validate and sanitize all inputs
+- Use prepared SQL statements
+- Check capabilities and nonces
+- Escape output
+- Follow WordPress security best practices
+
+## Common WordPress Functions
+```php
+// Options
+get_option( 'your_plugin_option_name' );
+update_option( 'your_plugin_option_name', $value );
+
+// User meta
+get_user_meta( $user_id, 'your_plugin_meta_key', true );
+update_user_meta( $user_id, 'your_plugin_meta_key', $value );
+
+// Post meta
+get_post_meta( $post_id, 'your_plugin_meta_key', true );
+update_post_meta( $post_id, 'your_plugin_meta_key', $value );
+
+// Transients
+get_transient( 'your_plugin_cache_key' );
+set_transient( 'your_plugin_cache_key', $data, HOUR_IN_SECONDS );
+```
+
+## Error Handling
+- Use WP_Error for WordPress-style errors
+- Log meaningful error messages with error_log()
+- Provide user-friendly admin notices
+- Handle API failures gracefully
+- Implement retry mechanisms where appropriate
+
+## Documentation Requirements
+- PHPDoc blocks for classes/methods
+- Inline comments for complex logic
+- Document all custom filters/actions
+- Update changelog in readme.txt
+- Keep main plugin file header current
+
+## Versioning & @since Tags
+- Every new class must include a `@since x.x.x` tag
+- Every new method must include a `@since x.x.x` tag
+- Every new property must include a `@since x.x.x` tag
+- Use semantic versioning (major.minor.patch)
+- Example format:
+```php
+/**
+ * The plugin name for module tracking.
+ *
+ * @since 1.0.0
+ * @var   string
+ */
+public $name = 'Example Plugin';
+
+/**
+ * Handles the form submission.
+ *
+ * @since  1.0.0
+ *
+ * @param  array $data The form data.
+ * @return bool  True on success, false on failure.
+ */
+public function handle_form( $data ) {
+    // Method implementation
+}
+```
+
+## Plugin Activation/Deactivation
+```php
+// Activation hook
+register_activation_hook( __FILE__, array( 'Your_Plugin_Main', 'activate' ) );
+
+// Deactivation hook
+register_deactivation_hook( __FILE__, array( 'Your_Plugin_Main', 'deactivate' ) );
+
+// Uninstall hook (in separate uninstall.php file)
+register_uninstall_hook( __FILE__, array( 'Your_Plugin_Main', 'uninstall' ) );
+```
+
+## WordPress Hooks Best Practices
+```php
+// Use specific hook priorities when order matters
+add_action( 'init', array( $this, 'early_init' ), 5 );
+add_action( 'init', array( $this, 'late_init' ), 20 );
+
+// Remove hooks when necessary
+remove_action( 'init', array( $other_plugin, 'conflicting_method' ) );
+
+// Use static methods for simple callbacks
+add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_scripts' ) );
+```

@@ -1,0 +1,209 @@
+name: Claude Code
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  issues:
+    types: [opened, assigned]
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  claude:
+    if: |
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
+      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+      id-token: write
+      actions: read # Required for Claude to read CI results on PRs
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
+          coverage: xdebug
+          tools: composer, wp-cli
+
+      - name: Install Composer Dependencies
+        run: |
+          if [ -f composer.json ]; then
+            composer install --dev --prefer-dist --no-progress --no-interaction
+          fi
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install Node Dependencies
+        run: |
+          if [ -f package.json ]; then
+            npm ci
+          fi
+
+      - name: Set up WordPress Test Environment
+        run: |
+          # Set up WordPress for testing if needed
+          if [ -f tests/bootstrap.php ]; then
+            echo "WordPress test environment detected"
+            export WP_TESTS_DIR=/tmp/wordpress-tests-lib
+            export WP_CORE_DIR=/tmp/wordpress/
+            
+            # Download WordPress test suite if not cached
+            if [ ! -d $WP_TESTS_DIR ]; then
+              git clone --depth=1 --branch=trunk https://github.com/WordPress/wordpress-develop.git $WP_TESTS_DIR
+            fi
+            
+            # Download WordPress core if not cached
+            if [ ! -d $WP_CORE_DIR ]; then
+              wp core download --path=$WP_CORE_DIR --skip-content
+            fi
+          fi
+
+      - name: Run Claude Code
+        id: claude
+        uses: anthropics/claude-code-action@beta
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+
+          # This allows Claude to read CI results on PRs
+          additional_permissions: |
+            actions: read
+          
+          # Optional: Specify model (defaults to Claude Sonnet 4, uncomment for Claude Opus 4)
+          # model: "claude-opus-4-20250514"
+          
+          # Optional: Customize the trigger phrase (default: @claude)
+          # trigger_phrase: "/claude"
+          
+          # Optional: Trigger when specific user is assigned to an issue
+          # assignee_trigger: "claude-bot"
+          
+          # WordPress-specific allowed tools
+          allowed_tools: |
+            Bash(composer:*),
+            Bash(./vendor/bin/*),
+            Bash(wp:*),
+            Bash(wp-cli:*),
+            Bash(phpcs:*),
+            Bash(phpcbf:*),
+            Bash(phpstan:*),
+            Bash(phpunit:*),
+            Bash(php -l:*),
+            Bash(php -m),
+            Bash(php --version),
+            Bash(npm:*),
+            Bash(yarn:*),
+            Bash(node:*),
+            Bash(gulp:*),
+            Bash(webpack:*),
+            Bash(grunt:*),
+            Bash(sass:*),
+            Bash(postcss:*),
+            Bash(eslint:*),
+            Bash(stylelint:*),
+            Bash(git:*),
+            Bash(find:*),
+            Bash(grep:*),
+            Bash(cat:*),
+            Bash(ls:*),
+            Bash(head:*),
+            Bash(tail:*),
+            Bash(wc:*),
+            Bash(chmod:*),
+            Bash(mkdir:*),
+            Bash(cp:*),
+            Bash(mv:*),
+            Bash(rm:*),
+            Edit,
+            Write,
+            Read
+          
+          # WordPress-specific custom instructions
+          custom_instructions: |
+            You are working on a WordPress plugin or theme. Follow these WordPress-specific guidelines:
+            
+            **WordPress Standards & APIs:**
+            - Follow WordPress.org PHP Coding Standards
+            - Use WordPress functions instead of PHP alternatives (e.g., wp_remote_get() vs curl)
+            - Implement proper WordPress hooks (actions and filters)
+            - Use WordPress Settings API for options pages
+            - Follow WordPress file structure conventions
+            
+            **Security Best Practices:**
+            - Sanitize ALL user inputs using WordPress sanitization functions
+            - Escape ALL outputs using esc_html(), esc_attr(), esc_url(), etc.
+            - Use nonces for form submissions: wp_nonce_field() and wp_verify_nonce()
+            - Check user capabilities: current_user_can() before sensitive operations
+            - Use $wpdb->prepare() for all custom database queries
+            - Validate and sanitize AJAX requests
+            
+            **Performance & Optimization:**
+            - Use wp_enqueue_script() and wp_enqueue_style() for assets
+            - Implement proper caching with transients or object cache
+            - Optimize database queries and avoid N+1 problems
+            - Use WordPress conditional tags to load code only when needed
+            - Minimize HTTP requests and optimize asset delivery
+            
+            **Code Quality & Testing:**
+            - Run `composer phpcs` for code style checking
+            - Run `composer phpcbf` to fix code style issues automatically
+            - Run `composer phpstan` for static analysis
+            - Run `composer test` or `./vendor/bin/phpunit` for unit tests
+            - Use `php -l filename.php` to check PHP syntax
+            
+            **WordPress CLI Integration:**
+            - Use `wp --info` to check WordPress installation
+            - Use `wp plugin list` to see active plugins
+            - Use `wp theme list` to see active themes
+            - Create WP-CLI commands for plugin functionality when appropriate
+            
+            **Frontend Development:**
+            - Run `npm run build` to compile assets
+            - Run `npm run lint` to check JavaScript code style
+            - Use `gulp build` or similar for asset compilation
+            - Ensure responsive design and accessibility standards
+            
+            **Documentation & Versioning:**
+            - Add proper PHPDoc blocks for all functions and classes
+            - Use @since tags for new functions (e.g., @since 1.0.0)
+            - Update readme.txt following WordPress.org standards
+            - Use semantic versioning for releases
+            - Document hooks and filters for developers
+            
+            **WordPress-Specific Patterns:**
+            - Use singleton pattern for main plugin classes
+            - Implement proper activation/deactivation hooks
+            - Create uninstall.php for clean plugin removal
+            - Use WordPress error handling with WP_Error
+            - Follow WordPress naming conventions for files and functions
+            
+            When making changes:
+            - Test with `composer phpcs` to ensure coding standards
+            - Run `composer test` to verify functionality
+            - Check with `wp plugin activate` to ensure activation works
+            - Verify frontend changes don't break existing functionality
+            - Test admin interface changes for usability
+          
+          # Environment variables for WordPress development
+          claude_env: |
+            WP_DEBUG: true
+            WP_DEBUG_LOG: true
+            SCRIPT_DEBUG: true
+            WP_ENVIRONMENT_TYPE: development

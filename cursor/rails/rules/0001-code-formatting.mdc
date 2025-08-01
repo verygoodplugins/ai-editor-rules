@@ -1,0 +1,76 @@
+---
+description: Apply consistent code formatting standards to all Ruby and ERB files
+globs: app/**/*.erb,**/*.rb
+alwaysApply: false
+---
+# Code Formatting Standards
+
+<version>1.0.0</version>
+
+## Context
+- All code files must pass linting
+- Consistent formatting across all file types
+- Prevents CI/CD failures from formatting issues
+
+## Requirements
+
+<critical>
+- NEVER leave trailing whitespace at end of lines
+- ALWAYS end files with exactly one newline character
+- NO multiple blank lines at end of file
+</critical>
+
+- Use 2 spaces for indentation (no tabs)
+- No trailing commas in Ruby
+- Use trailing commas in JavaScript/TypeScript arrays and objects
+- Maximum line length: 120 characters
+- Remove unused imports and variables
+- Consistent quote style (single quotes in Ruby, double in ERB)
+
+## Examples
+
+<example>
+```ruby
+# Good - no trailing spaces, ends with newline
+class User < ApplicationRecord
+  validates :email, presence: true
+  
+  def full_name
+    "#{first_name} #{last_name}".strip
+  end
+end
+↵
+```
+</example>
+
+<example type="invalid">
+```ruby
+# Bad - has trailing spaces and no final newline
+class User < ApplicationRecord  ·
+  validates :email, presence: true·
+  ·
+  def full_name·
+    "#{first_name} #{last_name}".strip
+  end
+end
+```
+</example>
+
+## Linter Integration
+
+- Ruby: StandardRB (`bundle exec standardrb --fix`)
+- JavaScript: ESLint with Prettier
+- ERB: erb-lint (`bundle exec erblint --lint-all`)
+- YAML: yamllint
+
+## Editor Config
+
+```
+# .editorconfig
+[*]
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+```

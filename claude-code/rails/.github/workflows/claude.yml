@@ -1,0 +1,151 @@
+name: Claude Code
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  issues:
+    types: [opened, assigned]
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  claude:
+    if: |
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
+      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+      id-token: write
+      actions: read # Required for Claude to read CI results on PRs
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: .ruby-version
+          bundler-cache: true
+
+      - name: Set up database
+        run: |
+          bundle exec rails db:prepare
+        env:
+          RAILS_ENV: test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+
+      - name: Run Claude Code
+        id: claude
+        uses: anthropics/claude-code-action@beta
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+
+          # This allows Claude to read CI results on PRs
+          additional_permissions: |
+            actions: read
+          
+          # Optional: Specify model (defaults to Claude Sonnet 4, uncomment for Claude Opus 4)
+          # model: "claude-opus-4-20250514"
+          
+          # Optional: Customize the trigger phrase (default: @claude)
+          # trigger_phrase: "/claude"
+          
+          # Optional: Trigger when specific user is assigned to an issue
+          # assignee_trigger: "claude-bot"
+          
+          # Rails-specific allowed tools
+          allowed_tools: |
+            Bash(bundle:*),
+            Bash(rails:*),
+            Bash(rake:*),
+            Bash(rspec:*),
+            Bash(standardrb:*),
+            Bash(erblint:*),
+            Bash(brakeman:*),
+            Bash(rubocop:*),
+            Bash(rails test:*),
+            Bash(rails generate:*),
+            Bash(rails destroy:*),
+            Bash(rails db:*),
+            Bash(rails routes:*),
+            Bash(rails console --sandbox),
+            Bash(gem list),
+            Bash(bundle outdated),
+            Bash(bundle audit),
+            Bash(yarn:*),
+            Bash(npm:*),
+            Bash(node:*),
+            Bash(git:*),
+            Bash(find:*),
+            Bash(grep:*),
+            Bash(cat:*),
+            Bash(ls:*),
+            Bash(head:*),
+            Bash(tail:*),
+            Bash(wc:*),
+            Edit,
+            Write,
+            Read
+          
+          # Rails-specific custom instructions
+          custom_instructions: |
+            You are working on a Ruby on Rails application. Follow these guidelines:
+            
+            **Rails Conventions:**
+            - Use Rails 7.2+ features and patterns
+            - Follow RESTful routing conventions
+            - Use proper ActiveRecord associations and validations
+            - Implement service objects for complex business logic
+            - Use concerns for shared functionality
+            
+            **Code Quality:**
+            - Run `bundle exec standardrb` for Ruby code formatting
+            - Run `bundle exec erblint` for ERB template linting
+            - Use `bundle exec rspec` or `rails test` for running tests
+            - Run `bundle exec brakeman` for security analysis
+            
+            **Database & Migrations:**
+            - Always create reversible migrations
+            - Use `rails db:migrate:status` to check migration status
+            - Consider performance implications of database changes
+            - Add proper indexes for query optimization
+            
+            **Testing:**
+            - Write tests for all new functionality
+            - Use RSpec or Minitest following project conventions
+            - Test both positive and negative cases
+            - Include integration tests for user workflows
+            
+            **Security:**
+            - Use strong parameters in controllers
+            - Sanitize user input and escape output
+            - Check for SQL injection vulnerabilities
+            - Verify authentication and authorization
+            
+            **Performance:**
+            - Watch for N+1 queries and use `includes` appropriately
+            - Consider caching strategies for expensive operations
+            - Monitor database query performance
+            - Use background jobs for long-running tasks
+            
+            When making changes:
+            - Run tests after modifications: `bundle exec rspec` or `rails test`
+            - Check code style: `bundle exec standardrb --fix`
+            - Verify migrations work: `rails db:migrate` and `rails db:rollback`
+            - Test in Rails console when appropriate: `rails console --sandbox`
+          
+          # Environment variables for Rails development
+          claude_env: |
+            RAILS_ENV: development
+            RACK_ENV: development
+            DATABASE_URL: postgresql://localhost/app_development
