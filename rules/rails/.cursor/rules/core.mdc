@@ -1,0 +1,319 @@
+# Rails Core Development Rules
+
+## Project Structure and Conventions
+Follow Rails conventions for file organization and naming:
+
+```
+app/
+├── controllers/
+│   ├── application_controller.rb    # Base controller
+│   ├── api/                        # API controllers in namespace
+│   └── admin/                      # Admin controllers in namespace
+├── models/
+│   ├── application_record.rb       # Base model
+│   ├── concerns/                   # Shared model concerns
+│   └── user.rb                     # Standard model files
+├── views/
+│   ├── layouts/                    # Layout templates
+│   ├── shared/                     # Shared partials
+│   └── [controller_name]/          # Controller-specific views
+├── services/                       # Service objects
+├── jobs/                          # Background jobs
+├── mailers/                       # Email functionality
+├── policies/                      # Authorization policies
+└── components/                    # ViewComponent classes
+```
+
+## Naming Conventions
+- **Models**: Singular, CamelCase (e.g., `User`, `OrderItem`)
+- **Controllers**: Plural, CamelCase with "Controller" suffix (e.g., `UsersController`)
+- **Views**: Lowercase with underscores, matching controller actions
+- **Services**: Descriptive names ending in purpose (e.g., `UserRegistrationService`)
+- **Jobs**: Descriptive names ending in "Job" (e.g., `SendWelcomeEmailJob`)
+
+## Model Conventions
+```ruby
+class User < ApplicationRecord
+  # Constants first
+  VALID_ROLES = %w[admin user guest].freeze
+  
+  # Associations second
+  has_many :posts, dependent: :destroy
+  belongs_to :organization
+  
+  # Validations third
+  validates :email, presence: true, uniqueness: true
+  validates :role, inclusion: { in: VALID_ROLES }
+  
+  # Scopes fourth
+  scope :active, -> { where(active: true) }
+  scope :by_role, ->(role) { where(role: role) }
+  
+  # Callbacks fifth
+  before_save :normalize_email
+  after_create :send_welcome_email
+  
+  # Instance methods last
+  def full_name
+    "#{first_name} #{last_name}"
+  end
+  
+  private
+  
+  def normalize_email
+    self.email = email.downcase.strip
+  end
+end
+```
+
+## Controller Conventions
+```ruby
+class UsersController < ApplicationController
+  before_action :authenticate_user!
+  before_action :set_user, only: [:show, :edit, :update, :destroy]
+  
+  # Standard RESTful actions
+  def index
+    @users = User.includes(:organization).page(params[:page])
+  end
+  
+  def show
+    # @user set by before_action
+  end
+  
+  def new
+    @user = User.new
+  end
+  
+  def create
+    @user = User.new(user_params)
+    
+    if @user.save
+      redirect_to @user, notice: 'User was successfully created.'
+    else
+      render :new, status: :unprocessable_entity
+    end
+  end
+  
+  def edit
+    # @user set by before_action
+  end
+  
+  def update
+    if @user.update(user_params)
+      redirect_to @user, notice: 'User was successfully updated.'
+    else
+      render :edit, status: :unprocessable_entity
+    end
+  end
+  
+  def destroy
+    @user.destroy
+    redirect_to users_url, notice: 'User was successfully deleted.'
+  end
+  
+  private
+  
+  def set_user
+    @user = User.find(params[:id])
+  end
+  
+  def user_params
+    params.require(:user).permit(:first_name, :last_name, :email, :role)
+  end
+end
+```
+
+## Service Object Pattern
+```ruby
+class UserRegistrationService
+  include ActiveModel::Model
+  include ActiveModel::Attributes
+  
+  attribute :email, :string
+  attribute :password, :string
+  attribute :first_name, :string
+  attribute :last_name, :string
+  
+  validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP }
+  validates :password, presence: true, length: { minimum: 8 }
+  
+  def call
+    return false unless valid?
+    
+    ActiveRecord::Base.transaction do
+      create_user
+      send_welcome_email
+      track_registration
+    end
+    
+    true
+  rescue StandardError => e
+    errors.add(:base, e.message)
+    false
+  end
+  
+  private
+  
+  attr_reader :user
+  
+  def create_user
+    @user = User.create!(
+      email: email,
+      password: password,
+      first_name: first_name,
+      last_name: last_name
+    )
+  end
+  
+  def send_welcome_email
+    UserMailer.welcome_email(user).deliver_later
+  end
+  
+  def track_registration
+    # Analytics tracking
+  end
+end
+```
+
+## Configuration Management
+```ruby
+# config/application.rb
+module YourApp
+  class Application < Rails::Application
+    config.load_defaults 7.0
+    
+    # Configuration for the application
+    config.time_zone = 'UTC'
+    config.active_job.queue_adapter = :sidekiq
+    
+    # Custom configuration
+    config.x.app_name = 'Your App Name'
+    config.x.support_email = 'support@yourapp.com'
+  end
+end
+
+# Use throughout the app
+Rails.application.config.x.app_name
+```
+
+## Environment-Specific Configuration
+```ruby
+# config/environments/development.rb
+Rails.application.configure do
+  config.cache_classes = false
+  config.eager_load = false
+  config.consider_all_requests_local = true
+  config.action_mailer.delivery_method = :letter_opener
+  config.active_record.verbose_query_logs = true
+end
+
+# config/environments/production.rb
+Rails.application.configure do
+  config.cache_classes = true
+  config.eager_load = true
+  config.consider_all_requests_local = false
+  config.force_ssl = true
+  config.log_level = :info
+end
+```
+
+## Route Organization
+```ruby
+# config/routes.rb
+Rails.application.routes.draw do
+  root 'dashboard#index'
+  
+  # Authentication routes
+  devise_for :users
+  
+  # Main application routes
+  resources :users do
+    resources :posts, except: [:index]
+  end
+  
+  # Admin namespace
+  namespace :admin do
+    resources :users
+    resources :organizations
+  end
+  
+  # API namespace with versioning
+  namespace :api do
+    namespace :v1 do
+      resources :users, only: [:index, :show, :create, :update]
+    end
+  end
+  
+  # Health check for monitoring
+  get '/health', to: 'health#check'
+end
+```
+
+## Database Migrations
+```ruby
+class CreateUsers < ActiveRecord::Migration[7.0]
+  def change
+    create_table :users do |t|
+      t.string :email, null: false
+      t.string :first_name, null: false
+      t.string :last_name, null: false
+      t.string :role, default: 'user'
+      t.boolean :active, default: true
+      t.references :organization, null: false, foreign_key: true
+      
+      t.timestamps
+    end
+    
+    add_index :users, :email, unique: true
+    add_index :users, [:organization_id, :role]
+  end
+end
+```
+
+## Error Handling
+```ruby
+class ApplicationController < ActionController::Base
+  rescue_from ActiveRecord::RecordNotFound, with: :record_not_found
+  rescue_from ActionController::ParameterMissing, with: :parameter_missing
+  
+  private
+  
+  def record_not_found
+    redirect_to root_path, alert: 'Record not found.'
+  end
+  
+  def parameter_missing(exception)
+    redirect_to root_path, alert: "Required parameter missing: #{exception.param}"
+  end
+end
+```
+
+## Logging and Debugging
+```ruby
+# Use Rails logger consistently
+Rails.logger.info "User #{current_user.id} performed action: #{action_name}"
+Rails.logger.error "Failed to process payment: #{error.message}"
+
+# Debug in development
+debugger if Rails.env.development?
+
+# Custom log tags
+config.log_tags = [:request_id, :subdomain]
+```
+
+## Performance Considerations
+- Use `includes` to avoid N+1 queries
+- Implement database indexes for frequently queried fields
+- Use `find_each` for large dataset processing
+- Implement caching for expensive operations
+- Use background jobs for long-running tasks
+- Monitor query performance with tools like Bullet
+
+## Code Organization Principles
+- Keep controllers thin, models fat (but not too fat)
+- Extract complex business logic into service objects
+- Use concerns for shared functionality
+- Follow single responsibility principle
+- Write self-documenting code with clear method names
+- Use meaningful variable and method names

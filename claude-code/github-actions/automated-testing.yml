@@ -1,0 +1,332 @@
+name: Automated Testing with Claude
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+  push:
+    branches: [main, master, develop]
+
+jobs:
+  detect-project:
+    runs-on: ubuntu-latest
+    outputs:
+      project-type: ${{ steps.detect.outputs.type }}
+      has-tests: ${{ steps.detect.outputs.has-tests }}
+      test-command: ${{ steps.detect.outputs.test-command }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Detect project type and test setup
+        id: detect
+        run: |
+          # Detect project type
+          if [ -f "wp-config.php" ] || [ -f "style.css" ] || [ -d "wp-content" ] || grep -q "WordPress" composer.json 2>/dev/null; then
+            echo "type=wordpress" >> $GITHUB_OUTPUT
+            echo "test-command=vendor/bin/phpunit" >> $GITHUB_OUTPUT
+          elif [ -f "Gemfile" ] && grep -q "rails" Gemfile; then
+            echo "type=rails" >> $GITHUB_OUTPUT
+            echo "test-command=bundle exec rspec" >> $GITHUB_OUTPUT
+          elif [ -f "package.json" ]; then
+            if grep -q "react\|next\|vue" package.json; then
+              echo "type=frontend" >> $GITHUB_OUTPUT
+            else
+              echo "type=node" >> $GITHUB_OUTPUT
+            fi
+            echo "test-command=npm test" >> $GITHUB_OUTPUT
+          elif [ -f "requirements.txt" ] || [ -f "pyproject.toml" ]; then
+            echo "type=python" >> $GITHUB_OUTPUT
+            echo "test-command=pytest" >> $GITHUB_OUTPUT
+          else
+            echo "type=unknown" >> $GITHUB_OUTPUT
+            echo "test-command=echo 'No tests configured'" >> $GITHUB_OUTPUT
+          fi
+          
+          # Check if tests exist
+          if [ -d "tests" ] || [ -d "test" ] || [ -d "spec" ] || [ -f "phpunit.xml" ] || [ -f "jest.config.js" ] || grep -q '"test"' package.json 2>/dev/null; then
+            echo "has-tests=true" >> $GITHUB_OUTPUT
+          else
+            echo "has-tests=false" >> $GITHUB_OUTPUT
+          fi
+
+  run-tests:
+    needs: detect-project
+    if: needs.detect-project.outputs.has-tests == 'true'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup WordPress Test Environment
+        if: needs.detect-project.outputs.project-type == 'wordpress'
+        run: |
+          # Setup MySQL
+          sudo systemctl start mysql
+          mysql -e 'CREATE DATABASE test_db;' -uroot -proot
+          
+          # Setup WordPress test environment
+          if [ -f "bin/install-wp-tests.sh" ]; then
+            bash bin/install-wp-tests.sh test_db root root localhost latest
+          fi
+          
+          # Install Composer dependencies
+          if [ -f "composer.json" ]; then
+            composer install --no-interaction --prefer-dist
+          fi
+
+      - name: Setup Ruby/Rails Environment
+        if: needs.detect-project.outputs.project-type == 'rails'
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.0'
+          bundler-cache: true
+        
+      - name: Setup Rails Database
+        if: needs.detect-project.outputs.project-type == 'rails'
+        run: |
+          # Setup PostgreSQL
+          sudo systemctl start postgresql
+          sudo -u postgres createuser -s runner
+          
+          # Setup test database
+          bundle exec rails db:create db:migrate RAILS_ENV=test
+        env:
+          RAILS_ENV: test
+          DATABASE_URL: postgres://runner@localhost/test
+
+      - name: Setup Node.js Environment
+        if: contains(fromJson('["frontend", "node"]'), needs.detect-project.outputs.project-type)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install Node.js Dependencies
+        if: contains(fromJson('["frontend", "node"]'), needs.detect-project.outputs.project-type)
+        run: npm ci
+
+      - name: Setup Python Environment
+        if: needs.detect-project.outputs.project-type == 'python'
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          
+      - name: Install Python Dependencies
+        if: needs.detect-project.outputs.project-type == 'python'
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f pyproject.toml ]; then pip install .; fi
+
+      - name: Run Tests
+        run: ${{ needs.detect-project.outputs.test-command }}
+        env:
+          CI: true
+
+      - name: Generate Test Coverage
+        if: success()
+        run: |
+          case "${{ needs.detect-project.outputs.project-type }}" in
+            "wordpress")
+              if command -v phpunit >/dev/null; then
+                vendor/bin/phpunit --coverage-clover coverage.xml
+              fi
+              ;;
+            "rails")
+              bundle exec rspec --format documentation
+              ;;
+            "frontend"|"node")
+              npm run test:coverage 2>/dev/null || npm test -- --coverage --watchAll=false
+              ;;
+            "python")
+              pytest --cov=. --cov-report=xml
+              ;;
+          esac
+
+  claude-test-analysis:
+    needs: [detect-project, run-tests]
+    if: always() && needs.detect-project.outputs.has-tests == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: read
+      id-token: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Analyze Test Results with Claude
+        uses: anthropics/claude-code-action@beta
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          
+          direct_prompt: |
+            Please analyze the test results and provide insights on:
+            
+            ## Test Analysis for ${{ needs.detect-project.outputs.project-type }} project
+            
+            ### Areas to Review:
+            1. **Test Coverage**: Are there areas lacking test coverage?
+            2. **Test Quality**: Are the tests comprehensive and well-written?
+            3. **Failed Tests**: If any tests failed, what might be the causes?
+            4. **Missing Tests**: What types of tests should be added?
+            5. **Test Performance**: Are there slow or inefficient tests?
+            
+            ### Project-Specific Focus:
+            ${{ needs.detect-project.outputs.project-type == 'wordpress' && 
+            '- WordPress-specific testing (hooks, filters, shortcodes)
+            - Plugin compatibility testing
+            - Security testing for WordPress vulnerabilities
+            - Multisite compatibility if applicable' ||
+            
+            needs.detect-project.outputs.project-type == 'rails' && 
+            '- Model validations and associations
+            - Controller and request specs
+            - Integration tests for user workflows
+            - Database transaction handling' ||
+            
+            contains(fromJson('["frontend", "node"]'), needs.detect-project.outputs.project-type) && 
+            '- Component testing with React Testing Library
+            - Integration tests for user interactions
+            - Accessibility testing
+            - Performance testing for components' ||
+            
+            'General code quality and coverage analysis' }}
+            
+            ### Test Results Status:
+            - Tests ran: ${{ needs.run-tests.result }}
+            - Project has tests: ${{ needs.detect-project.outputs.has-tests }}
+            
+            Please provide actionable recommendations for improving the test suite.
+
+          allowed_tools: |
+            Bash(find:*),Bash(grep:*),Bash(cat:*),Bash(ls:*),${{ 
+            needs.detect-project.outputs.project-type == 'wordpress' && 'Bash(phpunit:*),Bash(wp:*)' ||
+            needs.detect-project.outputs.project-type == 'rails' && 'Bash(rspec:*),Bash(rubocop:*)' ||
+            contains(fromJson('["frontend", "node"]'), needs.detect-project.outputs.project-type) && 'Bash(npm:*),Bash(jest:*)' ||
+            'Bash(git:*)'
+            }}
+
+  security-scan:
+    needs: detect-project
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: WordPress Security Scan
+        if: needs.detect-project.outputs.project-type == 'wordpress'
+        run: |
+          # Basic security checks for WordPress
+          echo "Checking for common WordPress security issues..."
+          
+          # Check for direct file access prevention
+          if ! grep -r "defined.*ABSPATH.*exit" . --include="*.php" >/dev/null 2>&1; then
+            echo "⚠️  Warning: Some PHP files may be missing direct access prevention"
+          fi
+          
+          # Check for SQL injection patterns
+          if grep -r "\$wpdb->query.*\$" . --include="*.php" >/dev/null 2>&1; then
+            echo "⚠️  Warning: Potential SQL injection risk found"
+          fi
+          
+          # Check for XSS prevention
+          if ! grep -r "esc_html\|esc_attr\|wp_kses" . --include="*.php" >/dev/null 2>&1; then
+            echo "⚠️  Warning: Limited XSS prevention found"
+          fi
+
+      - name: Rails Security Scan
+        if: needs.detect-project.outputs.project-type == 'rails'
+        run: |
+          # Install and run Brakeman security scanner
+          if [ -f "Gemfile" ]; then
+            gem install brakeman
+            brakeman --format json --output brakeman-report.json || true
+            
+            if [ -f "brakeman-report.json" ]; then
+              echo "Security scan completed. Check brakeman-report.json for details."
+            fi
+          fi
+
+      - name: Node.js Security Scan
+        if: contains(fromJson('["frontend", "node"]'), needs.detect-project.outputs.project-type)
+        run: |
+          if [ -f "package.json" ]; then
+            # Audit npm packages
+            npm audit --audit-level=moderate
+            
+            # Check for common issues
+            if grep -r "innerHTML\|dangerouslySetInnerHTML" . --include="*.js" --include="*.jsx" --include="*.ts" --include="*.tsx" >/dev/null 2>&1; then
+              echo "⚠️  Warning: Potential XSS risk found in JSX files"
+            fi
+          fi
+
+  performance-check:
+    needs: detect-project
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Frontend Performance Check
+        if: contains(fromJson('["frontend", "node"]'), needs.detect-project.outputs.project-type)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: Build and Analyze Bundle
+        if: contains(fromJson('["frontend", "node"]'), needs.detect-project.outputs.project-type)
+        run: |
+          npm ci
+          
+          # Try to build the project
+          npm run build 2>/dev/null || echo "Build command not available"
+          
+          # Analyze bundle size if available
+          if [ -d "build" ] || [ -d "dist" ]; then
+            echo "Build artifacts created. Analyzing size..."
+            du -sh build/ dist/ 2>/dev/null || true
+          fi
+          
+          # Check for bundle analyzer
+          if npm list webpack-bundle-analyzer >/dev/null 2>&1; then
+            echo "Bundle analyzer available for detailed analysis"
+          fi
+
+  test-summary:
+    needs: [detect-project, run-tests, claude-test-analysis, security-scan, performance-check]
+    if: always()
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Test Summary
+        run: |
+          echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Project Type**: ${{ needs.detect-project.outputs.project-type }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Has Tests**: ${{ needs.detect-project.outputs.has-tests }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Test Command**: \`${{ needs.detect-project.outputs.test-command }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tests Result**: ${{ needs.run-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Claude Analysis**: ${{ needs.claude-test-analysis.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Security Scan**: ${{ needs.security-scan.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Performance Check**: ${{ needs.performance-check.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ needs.run-tests.result }}" = "success" ]; then
+            echo "✅ All tests passed successfully!" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.run-tests.result }}" = "failure" ]; then
+            echo "❌ Some tests failed. Check the test results for details." >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.detect-project.outputs.has-tests }}" = "false" ]; then
+            echo "⚠️ No tests found. Consider adding test coverage." >> $GITHUB_STEP_SUMMARY
+          fi

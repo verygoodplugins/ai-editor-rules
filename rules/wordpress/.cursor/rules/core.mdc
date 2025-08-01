@@ -1,0 +1,201 @@
+# WordPress Core Development Rules
+
+## File Documentation
+Every PHP file must start with:
+```php
+/**
+ * Plugin Name - Component Description
+ *
+ * @package   Your Plugin Name
+ * @copyright Copyright (c) 2024, Your Company, https://yourcompany.com
+ * @license   GPL-3.0+
+ * @since     1.0.0
+ */
+```
+
+## Code Style
+- Use tabs for indentation
+- Keep lines under 100 characters
+- Use Yoda conditions (`'value' === $variable`)
+- Add spaces after opening parentheses and before closing parentheses
+- Follow WordPress.org PHP Coding Standards
+
+## Naming Conventions
+```
+files/
+├── class-example.php       # Classes
+├── interface-example.php   # Interfaces
+└── trait-example.php      # Traits
+
+YourPrefix_Example          # Class names (StudlyCaps with prefix)
+your_prefix_function_name() # Function names (lowercase_with_underscores)
+$descriptive_variable       # Variable names (clear purpose)
+YOUR_PREFIX_CONSTANT        # Constants (uppercase with prefix)
+```
+
+## Class Structure
+```php
+/**
+ * Class description.
+ *
+ * @package Your Plugin Name
+ * @since 1.0.0
+ */
+class YourPrefix_Example {
+
+    /**
+     * Class constructor.
+     *
+     * @since 1.0.0
+     */
+    public function __construct() {
+        $this->init();
+    }
+
+    /**
+     * Initialize the class.
+     *
+     * @since 1.0.0
+     */
+    private function init() {
+        add_action( 'init', array( $this, 'init_hooks' ) );
+    }
+
+    /**
+     * Initialize hooks.
+     *
+     * @since 1.0.0
+     */
+    public function init_hooks() {
+        // Hook implementations
+    }
+}
+```
+
+## Function Documentation
+```php
+/**
+ * Function description.
+ *
+ * @since 1.0.0
+ *
+ * @param string $param1 Description of parameter.
+ * @param array  $param2 {
+ *     Optional. Array of arguments.
+ *
+ *     @type string $key1 Description of array key.
+ *     @type int    $key2 Description of another key.
+ * }
+ * @return mixed Description of return value.
+ */
+function your_prefix_function_name( $param1, $param2 = array() ) {
+    // Implementation
+}
+```
+
+## Error Handling
+```php
+// Use WP_Error for error handling
+if ( ! $valid_data ) {
+    return new WP_Error( 
+        'invalid_data', 
+        __( 'The provided data is invalid.', 'your-textdomain' ) 
+    );
+}
+
+// Check for errors
+if ( is_wp_error( $result ) ) {
+    error_log( 'Plugin Error: ' . $result->get_error_message() );
+    return false;
+}
+```
+
+## Plugin Structure Standards
+```
+your-plugin/
+├── your-plugin.php          # Main plugin file with header
+├── uninstall.php           # Uninstall cleanup
+├── includes/               # Core functionality
+│   ├── class-main.php      # Main plugin class
+│   ├── class-admin.php     # Admin functionality
+│   ├── admin/              # Admin-specific files
+│   ├── functions.php       # Global functions
+│   └── integrations/       # Third-party integrations
+├── assets/                 # Static assets
+│   ├── css/
+│   ├── js/
+│   └── img/
+├── languages/              # Translation files
+├── tests/                  # Unit tests
+└── readme.txt             # WordPress.org readme
+```
+
+## Main Plugin File Template
+```php
+<?php
+/**
+ * Plugin Name: Your Plugin Name
+ * Description: Brief description of your plugin.
+ * Version: 1.0.0
+ * Author: Your Name
+ * Text Domain: your-textdomain
+ * Domain Path: /languages
+ * Requires at least: 5.0
+ * Tested up to: 6.4
+ * Requires PHP: 7.4
+ * License: GPL v3 or later
+ */
+
+// Prevent direct access
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
+// Plugin constants
+define( 'YOUR_PLUGIN_VERSION', '1.0.0' );
+define( 'YOUR_PLUGIN_PATH', plugin_dir_path( __FILE__ ) );
+define( 'YOUR_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
+
+// Load main plugin class
+require_once YOUR_PLUGIN_PATH . 'includes/class-main.php';
+
+// Initialize plugin
+function your_plugin_init() {
+    new YourPrefix_Main();
+}
+add_action( 'plugins_loaded', 'your_plugin_init' );
+
+// Activation/Deactivation hooks
+register_activation_hook( __FILE__, 'your_plugin_activate' );
+register_deactivation_hook( __FILE__, 'your_plugin_deactivate' );
+```
+
+## WordPress Coding Standards
+- Always use full PHP opening tags `<?php`
+- Never use short echo tags `<?=`
+- End files with a single blank line
+- Use proper indentation (tabs for structure, spaces for alignment)
+- Follow WordPress naming conventions for functions and variables
+- Use WordPress core functions instead of native PHP when available
+
+## Performance Considerations
+- Load scripts and styles only where needed
+- Use wp_enqueue_script() and wp_enqueue_style() for assets
+- Implement proper caching for expensive operations
+- Minimize database queries
+- Use WordPress transients for temporary data storage
+
+## Internationalization
+```php
+// Always use textdomain for translations
+__( 'Text string', 'your-textdomain' );
+_e( 'Text string', 'your-textdomain' );
+_n( 'Singular', 'Plural', $count, 'your-textdomain' );
+
+// For variables in translations
+sprintf( 
+    __( 'Hello %s, you have %d messages.', 'your-textdomain' ), 
+    $name, 
+    $count 
+);
+```

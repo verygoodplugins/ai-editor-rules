@@ -1,0 +1,60 @@
+{
+  "permissions": {
+    "allow": [
+      "Edit",
+      "Write",
+      "MultiEdit", 
+      "Read",
+      "Bash(bundle:*)",
+      "Bash(rails:*)",
+      "Bash(rake:*)",
+      "Bash(rspec:*)",
+      "Bash(rubocop:*)",
+      "Bash(brakeman:*)",
+      "Bash(git:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(cat:*)",
+      "Bash(ls:*)",
+      "Bash(mkdir:*)",
+      "Bash(cp:*)",
+      "Bash(mv:*)",
+      "Bash(rm:*)",
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "Bash(jq:*)",
+      "Bash(echo:*)",
+      "Bash(gh:*)",
+      "Bash(ruby -c:*)",
+      "Bash(yarn:*)",
+      "Bash(npm:*)",
+      "Bash(node:*)",
+      "Bash(psql:*)",
+      "Bash(redis-cli:*)",
+      "WebSearch",
+      "mcp_playwright_browser_navigate",
+      "mcp_playwright_browser_take_screenshot", 
+      "mcp_playwright_browser_click",
+      "mcp_playwright_browser_type",
+      "mcp_playwright_browser_resize",
+      "mcp_playwright_browser_close",
+      "mcp_playwright_browser_snapshot"
+    ],
+    "deny": [
+      "Bash(sudo:*)",
+      "Bash(su:*)",
+      "Bash(rm -rf /*)",
+      "Bash(format:*)",
+      "Bash(fdisk:*)",
+      "Bash(rails destroy:*)"
+    ]
+  },
+  "env": {
+    "CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR": "true",
+    "DISABLE_COST_WARNINGS": "0", 
+    "BASH_MAX_OUTPUT_LENGTH": "50000",
+    "RAILS_ENV": "development",
+    "RACK_ENV": "development"
+  },
+  "description": "Ruby on Rails development configuration with Ruby/Rails tools, database access, and browser automation for full-stack testing."
+}

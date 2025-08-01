@@ -1,0 +1,61 @@
+{
+  "permissions": {
+    "allow": [
+      "Edit",
+      "Write",
+      "MultiEdit",
+      "Read", 
+      "Bash(npm:*)",
+      "Bash(yarn:*)",
+      "Bash(pnpm:*)",
+      "Bash(node:*)",
+      "Bash(npx:*)",
+      "Bash(jest:*)",
+      "Bash(eslint:*)",
+      "Bash(prettier:*)",
+      "Bash(tsc:*)",
+      "Bash(webpack:*)",
+      "Bash(vite:*)",
+      "Bash(next:*)",
+      "Bash(react-scripts:*)",
+      "Bash(git:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(cat:*)",
+      "Bash(ls:*)",
+      "Bash(mkdir:*)",
+      "Bash(cp:*)",
+      "Bash(mv:*)",
+      "Bash(rm:*)",
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "Bash(jq:*)",
+      "Bash(echo:*)",
+      "Bash(gh:*)",
+      "WebSearch",
+      "mcp_playwright_browser_navigate",
+      "mcp_playwright_browser_take_screenshot",
+      "mcp_playwright_browser_click", 
+      "mcp_playwright_browser_type",
+      "mcp_playwright_browser_resize",
+      "mcp_playwright_browser_close",
+      "mcp_playwright_browser_snapshot",
+      "mcp_playwright_browser_evaluate"
+    ],
+    "deny": [
+      "Bash(sudo:*)",
+      "Bash(su:*)",
+      "Bash(rm -rf /*)",
+      "Bash(format:*)",
+      "Bash(fdisk:*)"
+    ]
+  },
+  "env": {
+    "CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR": "true",
+    "DISABLE_COST_WARNINGS": "0",
+    "BASH_MAX_OUTPUT_LENGTH": "50000",
+    "NODE_ENV": "development",
+    "CI": "false"
+  },
+  "description": "React/frontend development configuration with Node.js tools, build systems, and browser automation for component testing."
+}
