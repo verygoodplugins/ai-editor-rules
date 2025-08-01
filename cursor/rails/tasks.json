@@ -1,0 +1,155 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Bundle Install",
+      "type": "shell",
+      "command": "bundle",
+      "args": ["install"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Database Setup",
+      "type": "shell",
+      "command": "rails",
+      "args": ["db:setup"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": [],
+      "dependsOn": "Bundle Install"
+    },
+    {
+      "label": "Database Migrate",
+      "type": "shell",
+      "command": "rails",
+      "args": ["db:migrate"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run RSpec Tests",
+      "type": "shell",
+      "command": "bundle",
+      "args": ["exec", "rspec"],
+      "group": "test",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run RuboCop",
+      "type": "shell",
+      "command": "bundle",
+      "args": ["exec", "rubocop"],
+      "group": "test",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Fix RuboCop Issues",
+      "type": "shell",
+      "command": "bundle",
+      "args": ["exec", "rubocop", "-A"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Brakeman Security Scan",
+      "type": "shell",
+      "command": "bundle",
+      "args": ["exec", "brakeman"],
+      "group": "test",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Start Rails Server",
+      "type": "shell",
+      "command": "rails",
+      "args": ["server"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "Start Rails Console",
+      "type": "shell",
+      "command": "rails",
+      "args": ["console"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Generate Migration",
+      "type": "shell",
+      "command": "rails",
+      "args": ["generate", "migration", "${input:migrationName}"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "migrationName",
+      "description": "Migration name",
+      "default": "AddFieldToModel",
+      "type": "promptString"
+    }
+  ]
+}

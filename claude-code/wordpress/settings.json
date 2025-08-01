@@ -1,24 +1,20 @@
 {
   "permissions": {
+    "additionalDirectories": ["/tmp"],
     "allow": [
       "Edit",
-      "Write",
+      "Write", 
       "MultiEdit",
-      "Read", 
+      "Read",
+      "Bash(composer:*)",
       "Bash(npm:*)",
-      "Bash(yarn:*)",
-      "Bash(pnpm:*)",
-      "Bash(node:*)",
-      "Bash(npx:*)",
-      "Bash(jest:*)",
-      "Bash(eslint:*)",
-      "Bash(prettier:*)",
-      "Bash(tsc:*)",
-      "Bash(webpack:*)",
-      "Bash(vite:*)",
-      "Bash(next:*)",
-      "Bash(react-scripts:*)",
+      "Bash(gulp:*)",
+      "Bash(phpunit:*)",
+      "Bash(phpcs:*)",
+      "Bash(phpcbf:*)",
+      "Bash(phpstan:*)",
       "Bash(git:*)",
+      "Bash(wp:*)",
       "Bash(find:*)",
       "Bash(grep:*)",
       "Bash(cat:*)",
@@ -27,20 +23,23 @@
       "Bash(cp:*)",
       "Bash(mv:*)",
       "Bash(rm:*)",
+      "Bash(chmod:*)",
       "Bash(curl:*)",
       "Bash(wget:*)",
       "Bash(jq:*)",
       "Bash(echo:*)",
       "Bash(gh:*)",
+      "Bash(php -l:*)",
       "WebSearch",
+      "Bash(base64:*)",
+      "Bash(./vendor/bin/*)",
       "mcp_playwright_browser_navigate",
       "mcp_playwright_browser_take_screenshot",
-      "mcp_playwright_browser_click", 
+      "mcp_playwright_browser_click",
       "mcp_playwright_browser_type",
       "mcp_playwright_browser_resize",
       "mcp_playwright_browser_close",
-      "mcp_playwright_browser_snapshot",
-      "mcp_playwright_browser_evaluate"
+      "mcp_playwright_browser_snapshot"
     ],
     "deny": [
       "Bash(sudo:*)",
@@ -54,8 +53,7 @@
     "CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR": "true",
     "DISABLE_COST_WARNINGS": "0",
     "BASH_MAX_OUTPUT_LENGTH": "50000",
-    "NODE_ENV": "development",
-    "CI": "false"
+    "WP_ENV": "development"
   },
-  "description": "React/frontend development configuration with Node.js tools, build systems, and browser automation for component testing."
+  "description": "WordPress plugin/theme development configuration with PHP tools, WordPress CLI, and browser automation for testing admin interfaces."
 }

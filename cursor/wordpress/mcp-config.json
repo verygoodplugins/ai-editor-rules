@@ -1,0 +1,33 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/your/wordpress/project"],
+      "description": "File system access for WordPress project files"
+    },
+    "brave-search": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-brave-search"],
+      "env": {
+        "BRAVE_API_KEY": "your-brave-api-key"
+      },
+      "description": "Web search for WordPress documentation and troubleshooting"
+    },
+    "postgres": {
+      "command": "npx", 
+      "args": ["-y", "@modelcontextprotocol/server-postgres", "postgresql://user:password@localhost/wordpress_db"],
+      "description": "Database access for WordPress database operations"
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-playwright"],
+      "description": "Browser automation for testing WordPress admin and frontend"
+    },
+    "wordpress-cli": {
+      "command": "wp",
+      "args": ["--allow-root", "cli", "info"],
+      "description": "WordPress CLI integration for site management"
+    }
+  },
+  "description": "MCP configuration for WordPress plugin/theme development with database access, browser testing, and WP-CLI integration."
+}

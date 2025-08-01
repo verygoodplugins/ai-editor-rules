@@ -1,114 +1,248 @@
 # AI Editor Rules
 
-A curated collection of Cursor rules, CLAUDE.md files, and Claude slash commands for various programming languages, frameworks, and workflows. This repository helps developers enhance their AI-assisted coding experience with proven patterns and best practices.
+A curated collection of configurations and rules for AI-powered development tools, organized by technology stack. Copy the configs directly into your projects for immediate productivity gains.
 
 ## 🚀 Quick Start
 
-1. Browse the [`rules/`](./rules/) directory for your technology stack
-2. Copy the relevant `.cursor/rules/` files to your project
-3. Customize the `CLAUDE.md` file for your specific needs
-4. Add any slash commands from the `prompts/` directory
+Choose your technology stack and copy the appropriate configuration files:
+
+### For Claude Code Users
+```bash
+# WordPress Development
+cp claude-code/wordpress/settings.json your-project/.claude/
+cp -r claude-code/wordpress/commands/ your-project/.claude/
+
+# Rails Development  
+cp claude-code/rails/settings.json your-project/.claude/
+cp -r claude-code/rails/commands/ your-project/.claude/
+
+# React Development
+cp claude-code/react/settings.json your-project/.claude/
+cp -r claude-code/react/commands/ your-project/.claude/
+```
+
+### For Cursor Users
+```bash
+# WordPress Development
+cp cursor/wordpress/tasks.json your-project/.vscode/
+cp cursor/wordpress/mcp-config.json your-project/.vscode/
+cp -r cursor/wordpress/rules/ your-project/.cursor/
+
+# Rails Development
+cp cursor/rails/tasks.json your-project/.vscode/
+cp cursor/rails/mcp-config.json your-project/.vscode/
+cp -r cursor/rails/rules/ your-project/.cursor/
+
+# React Development  
+cp cursor/react/tasks.json your-project/.vscode/
+cp cursor/react/mcp-config.json your-project/.vscode/
+cp -r cursor/react/rules/ your-project/.cursor/
+```
 
 ## 📁 Repository Structure
 
 ```
 ai-editor-rules/
-├── rules/                    # Main categorized rules
-│   ├── wordpress/           # WordPress plugin/theme development
-│   ├── rails/              # Ruby on Rails applications
-│   ├── react/              # React and frontend frameworks
-│   ├── general/            # Language-agnostic development rules
-│   └── workflows/          # Specific development workflows (testing, deployment, etc.)
-├── claude-code/            # Claude Code configurations
-│   ├── commands/           # Slash commands for common workflows
-│   ├── settings/           # Permission and environment configs
-│   ├── github-actions/     # Automated CI/CD with Claude
-│   └── examples/           # Real-world Claude Code setups
-├── templates/              # Starter templates for new projects
-├── examples/              # Real-world implementations from actual projects
-├── community/             # Community-contributed rules
-├── docs/                  # Documentation and guides
-└── tools/                 # Scripts and utilities for managing rules
+├── claude-code/              # Claude Code configurations
+│   ├── wordpress/            # WordPress plugin/theme development
+│   │   ├── settings.json     # Claude Code permissions and environment
+│   │   └── commands/         # Slash commands for WordPress workflows
+│   ├── rails/                # Ruby on Rails development
+│   │   ├── settings.json     # Rails-specific permissions
+│   │   └── commands/         # Rails workflow commands
+│   └── react/                # React/frontend development
+│       ├── settings.json     # Frontend development permissions
+│       └── commands/         # React component and testing commands
+├── cursor/                   # Cursor editor configurations
+│   ├── wordpress/            # WordPress development setup
+│   │   ├── tasks.json        # VSCode tasks for WordPress
+│   │   ├── mcp-config.json   # MCP servers configuration
+│   │   └── rules/            # Cursor rules for WordPress
+│   ├── rails/                # Rails development setup
+│   │   ├── tasks.json        # Rails-specific tasks
+│   │   ├── mcp-config.json   # Rails MCP configuration
+│   │   └── rules/            # Cursor rules for Rails
+│   └── react/                # React development setup
+│       ├── tasks.json        # Frontend build tasks
+│       ├── mcp-config.json   # React MCP configuration
+│       └── rules/            # Cursor rules for React
+└── README.md
 ```
 
-## 🎯 Featured Rule Sets
+## 🎯 What's Included
 
-### WordPress Development
-- **Plugin Development**: Complete rule set for WordPress plugin development with coding standards, security practices, and documentation requirements
-- **Theme Development**: Rules for modern WordPress theme development with performance optimization
-- **WooCommerce**: Specialized rules for WooCommerce extension development
-- **Slash Commands**: `@implement-gh-issue` for comprehensive feature implementation with WordPress admin testing
+### Claude Code Configurations
 
-### Ruby on Rails
-- **MVC Patterns**: Rails-specific conventions for controllers, models, and views
-- **API Development**: Best practices for building Rails APIs
-- **Testing**: Comprehensive testing patterns with RSpec and Minitest
-- **Slash Commands**: `@generate-service` for creating service objects with full test coverage
+#### WordPress Development
+- **Permissions**: PHP tools, WordPress CLI, Composer, PHPUnit, browser automation
+- **Commands**: Feature implementation, debugging, code review
+- **Environment**: Development-optimized settings
 
-### React & Frontend
-- **Component Architecture**: Modern React patterns with hooks and composition
-- **TypeScript Integration**: Type-safe React development
-- **Performance Optimization**: Rules for building fast, accessible React applications
-- **Slash Commands**: `@create-component` for generating React components with TypeScript, tests, and Storybook stories
+#### Rails Development  
+- **Permissions**: Ruby/Rails tools, database access, RSpec, RuboCop, browser testing
+- **Commands**: Service generation, migration helpers, debugging workflows
+- **Environment**: Rails development and testing setup
 
-### Claude Code Automation
-- **Slash Commands**: Pre-built workflows for common development tasks
-- **GitHub Actions**: Automated code review and testing with Claude
-- **Settings Templates**: Optimized permissions for different tech stacks
-- **Browser Automation**: Visual testing with Playwright integration
+#### React Development
+- **Permissions**: Node.js tools, build systems, testing frameworks, browser automation
+- **Commands**: Component creation, testing, performance analysis
+- **Environment**: Modern frontend development stack
+
+### Cursor Configurations
+
+#### Task Automation
+- **WordPress**: Composer, PHPUnit, PHPCS, WordPress CLI integration
+- **Rails**: Bundle, RSpec, RuboCop, database migrations, server management
+- **React**: npm/yarn, ESLint, Prettier, TypeScript, Storybook
+
+#### MCP Server Integration
+- **File System**: Project file access and manipulation
+- **Database**: PostgreSQL integration for data operations
+- **Browser**: Playwright automation for UI testing
+- **Git**: Version control integration
+- **Search**: Web search for documentation and troubleshooting
+
+#### Coding Rules
+- Technology-specific best practices and conventions
+- Security guidelines and performance optimizations
+- Testing patterns and documentation standards
+
+## 🛠️ Featured Tools and Workflows
+
+### Claude Code Slash Commands
+
+#### Universal Commands (Available in all stacks)
+- `@debug-issue` - Systematic debugging across technologies
+- `@code-review` - Comprehensive code review with security focus
+
+#### WordPress Specific
+- `@implement-gh-issue` - Full GitHub issue implementation with WordPress admin testing
+- `@wp-security-scan` - WordPress security vulnerability assessment
+
+#### Rails Specific  
+- `@generate-service` - Complete Rails service object with tests
+- `@rails-performance` - Database query optimization and performance analysis
+
+#### React Specific
+- `@create-component` - React component with TypeScript, tests, and Storybook
+- `@optimize-bundle` - Bundle analysis and performance optimization
+
+### Cursor Task Integration
+
+#### WordPress Tasks
+- Automated code style checking and fixing
+- PHPUnit test execution with coverage
+- WordPress CLI integration for site management
+- Asset building and optimization
+
+#### Rails Tasks
+- Database setup and migration management
+- RSpec test suite execution
+- RuboCop style enforcement
+- Brakeman security scanning
+- Rails server and console management
+
+#### React Tasks
+- Development server with hot reloading
+- Production build optimization
+- ESLint and Prettier integration
+- TypeScript compilation checking
+- Storybook development and building
+
+## 🔧 Customization
+
+### Adapting for Your Project
+
+1. **Update file paths**: Modify MCP configurations to point to your project directory
+2. **Adjust permissions**: Add or remove tools based on your specific needs
+3. **Environment variables**: Set appropriate values for your development setup
+4. **Task configurations**: Customize build and test commands for your workflow
+
+### Example Customizations
+
+#### WordPress Plugin Development
+```json
+{
+  "env": {
+    "WP_ENV": "development",
+    "WP_DEBUG": "true",
+    "PLUGIN_NAME": "your-plugin-name"
+  }
+}
+```
+
+#### Rails API Development
+```json
+{
+  "env": {
+    "RAILS_ENV": "development", 
+    "DATABASE_URL": "postgresql://localhost/your_app_development",
+    "API_VERSION": "v1"
+  }
+}
+```
+
+#### React Component Library
+```json
+{
+  "env": {
+    "NODE_ENV": "development",
+    "STORYBOOK_PORT": "6006",
+    "COMPONENT_LIB": "true"
+  }
+}
+```
+
+## 🚀 Advanced Features
+
+### Browser Automation Integration
+All configurations include Playwright integration for:
+- Visual regression testing
+- User interaction simulation
+- Screenshot capture for documentation
+- Accessibility testing
+
+### Security-First Development
+Built-in security scanning and best practices for:
+- Input validation and sanitization
+- SQL injection prevention
+- XSS attack mitigation
+- Dependency vulnerability checking
+
+### Performance Optimization
+Automated performance analysis including:
+- Database query optimization
+- Bundle size analysis
+- Memory usage monitoring
+- Load time optimization
 
 ## 🤝 Contributing
 
-We welcome contributions! See our [Contributing Guide](./docs/CONTRIBUTING.md) for details on:
+We welcome contributions! To add support for a new technology or improve existing configurations:
 
-- Adding new rule sets
-- Improving existing rules
-- Sharing real-world examples
-- Reporting issues
+1. Fork the repository
+2. Create a new directory under `claude-code/` and `cursor/` for your technology
+3. Add appropriate configuration files following the established patterns
+4. Test with real projects
+5. Submit a pull request with clear documentation
 
-## 📖 Documentation
+## 📚 Examples and Templates
 
-- [Getting Started](./docs/getting-started.md) - How to use these rules in your projects
-- [Rule Creation Guide](./docs/creating-rules.md) - Best practices for writing effective rules
-- [Community Guidelines](./docs/community-guidelines.md) - How to contribute and collaborate
+Each configuration is based on real-world usage in production projects:
+- WordPress plugins with 60+ integrations
+- Rails SaaS applications with complex business logic  
+- React applications with comprehensive component libraries
 
-## 🏷️ Rule Categories
+## 🔗 Related Projects
 
-### By Technology
-- ![WordPress](https://img.shields.io/badge/WordPress-21759B?style=flat-square&logo=wordpress&logoColor=white) [WordPress Rules](./rules/wordpress/)
-- ![Rails](https://img.shields.io/badge/Rails-CC0000?style=flat-square&logo=ruby-on-rails&logoColor=white) [Ruby on Rails Rules](./rules/rails/)
-- ![React](https://img.shields.io/badge/React-20232A?style=flat-square&logo=react&logoColor=61DAFB) [React Rules](./rules/react/)
-
-### By Workflow
-- 🧪 [Testing](./rules/workflows/testing/)
-- 🚀 [Deployment](./rules/workflows/deployment/)
-- 🔒 [Security](./rules/workflows/security/)
-- 📊 [Performance](./rules/workflows/performance/)
-
-## 💡 Examples
-
-See real-world implementations in our [`examples/`](./examples/) directory:
-
-- **WP Fusion Plugin**: WordPress plugin with 65+ CRM integrations
-- **EchoDash MVP**: Ruby on Rails SaaS application
-- **EchoDash Docs**: React-based documentation site with Docusaurus
-
-## 🛠️ Tools
-
-- **Rule Validator**: Check your rules for common issues
-- **Template Generator**: Create new rule sets from templates
-- **Migration Scripts**: Convert between different rule formats
+- [Claude Code Documentation](https://docs.anthropic.com/claude/docs/claude-code)
+- [Cursor Editor](https://cursor.sh/)
+- [Model Context Protocol](https://modelcontextprotocol.io/)
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🌟 Acknowledgments
-
-- Thanks to all contributors who have shared their rules and experiences
-- Inspired by the amazing AI-assisted development community
-- Built with ❤️ for developers who want to code more efficiently
+MIT License - feel free to use these configurations in your projects!
 
 ---
 
-**Star this repo** if you find these rules helpful, and **watch** for updates as we add more rule sets and improvements!
+**Ready to supercharge your AI-assisted development?** Choose your stack and copy the configs! 🚀
