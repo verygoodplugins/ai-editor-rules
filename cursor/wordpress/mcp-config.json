@@ -27,7 +27,20 @@
       "command": "wp",
       "args": ["--allow-root", "cli", "info"],
       "description": "WordPress CLI integration for site management"
+    },
+    "wordpress": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@instawp/mcp-wp"
+      ],
+      "env": {
+        "WORDPRESS_API_URL": "https://your-site.com",
+        "WORDPRESS_USERNAME": "your-username",
+        "WORDPRESS_PASSWORD": "your-password"
+      },
+      "autostart": true
     }
   },
-  "description": "MCP configuration for WordPress plugin/theme development with database access, browser testing, and WP-CLI integration."
+  "description": "MCP configuration for WordPress plugin/theme development with database access, browser testing, and WP-CLI, and REST API integration."
 }
